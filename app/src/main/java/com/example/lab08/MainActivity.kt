@@ -42,7 +42,7 @@ fun TaskScreen(viewModel: TaskViewModel) {
     val tasks by viewModel.tasks.collectAsState()
     val coroutineScope = rememberCoroutineScope()
     var newTaskDescription by remember { mutableStateOf("") }
-
+    var editingTask by remember { mutableStateOf<Task?>(null) } // Para manejar la tarea en edición
 
     Column(
         modifier = Modifier
@@ -56,22 +56,24 @@ fun TaskScreen(viewModel: TaskViewModel) {
             modifier = Modifier.fillMaxWidth()
         )
 
-
         Button(
             onClick = {
-                if (newTaskDescription.isNotEmpty()) {
-                    viewModel.addTask(newTaskDescription)
-                    newTaskDescription = ""
+                if (editingTask != null) {
+                    viewModel.editTask(editingTask!!, newTaskDescription)
+                    editingTask = null // Reinicia la tarea en edición
+                } else {
+                    if (newTaskDescription.isNotEmpty()) {
+                        viewModel.addTask(newTaskDescription)
+                    }
                 }
+                newTaskDescription = "" // Reinicia el campo de texto
             },
             modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
         ) {
-            Text("Agregar tarea")
+            Text(if (editingTask != null) "Editar tarea" else "Agregar tarea")
         }
 
-
         Spacer(modifier = Modifier.height(16.dp))
-
 
         tasks.forEach { task ->
             Row(
@@ -79,12 +81,22 @@ fun TaskScreen(viewModel: TaskViewModel) {
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(text = task.description)
-                Button(onClick = { viewModel.toggleTaskCompletion(task) }) {
-                    Text(if (task.isCompleted) "Completada" else "Pendiente")
+                Row {
+                    Button(onClick = {
+                        editingTask = task // Establecer la tarea en edición
+                        newTaskDescription = task.description // Cargar la descripción actual
+                    }) {
+                        Text("Editar")
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    Button(onClick = { viewModel.deleteTask(task) }) {
+                        Text("Eliminar")
+                    }
                 }
             }
         }
-
 
         Button(
             onClick = { coroutineScope.launch { viewModel.deleteAllTasks() } },
